@@ -171,7 +171,12 @@
     }
 
     function makeProgress({ done, total, label = 'Progreso de carrera', breakdown = '' }) {
-        const pct = Math.round((done / total) * 100);
+        // Guard contra total inválido (0, NaN, negativo): la barra no se renderiza
+        // con un width Infinity/NaN. Clamp resultado a 0..100.
+        const safeDone = isFinite(done) && done >= 0 ? done : 0;
+        const safeTotal = isFinite(total) && total > 0 ? total : 0;
+        const rawPct = safeTotal > 0 ? (safeDone / safeTotal) * 100 : 0;
+        const pct = Math.round(Math.max(0, Math.min(100, rawPct)));
         const node = el('div', {
             className: 'ms-progress-card',
             html: `
@@ -978,7 +983,7 @@
         });
         const downloadBtn = el('button', {
             className: 'ms-schedule-download',
-            attrs: { type: 'button', title: 'Descargar agenda semanal como Excel/CSV' },
+            attrs: { type: 'button', title: 'Descargar agenda semanal como archivo Excel (.xls)' },
             html: `
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span>Excel</span>
@@ -1055,17 +1060,24 @@
         blocks.forEach(b => {
             const rowStart = slotIdxToRow.get(b.slotStart) + 2; // +1 por header, +1 porque grid es 1-indexed
             const rowEnd = slotIdxToRow.get(b.slotEnd) + 3;     // exclusive end
+            // Construir el bloque con textContent (no innerHTML) para evitar
+            // que materia/comisión interpreten <, >, & como HTML.
             const block = el('div', {
                 className: 'ms-schedule-block',
                 attrs: {
                     title: `${b.materia}${b.comision ? ' · ' + b.comision : ''} (${formatMinutes(b.start)}–${formatMinutes(b.end)})`
-                },
-                html: `
-                    <div class="ms-schedule-block-title">${b.materia}</div>
-                    <div class="ms-schedule-block-time">${formatMinutes(b.start)}–${formatMinutes(b.end)}</div>
-                    ${b.comision ? `<div class="ms-schedule-block-comision">${b.comision}</div>` : ''}
-                `
+                }
             });
+            const titleNode = el('div', { className: 'ms-schedule-block-title', text: b.materia });
+            const timeNode = el('div', {
+                className: 'ms-schedule-block-time',
+                text: `${formatMinutes(b.start)}–${formatMinutes(b.end)}`
+            });
+            block.appendChild(titleNode);
+            block.appendChild(timeNode);
+            if (b.comision) {
+                block.appendChild(el('div', { className: 'ms-schedule-block-comision', text: b.comision }));
+            }
             block.style.gridColumn = String(b.dayIdx + 2);
             block.style.gridRow = `${rowStart} / ${rowEnd}`;
             block.style.setProperty('--ms-block-color', b.color);
