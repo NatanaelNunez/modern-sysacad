@@ -1525,6 +1525,11 @@ html.ms-switching *::after {
 
 /* ---------- Encuesta ---------- */
 
+/* Espacio entre el card del form y el footer para que no queden pegados */
+body.ms-page-encuesta .page-generic {
+    margin-bottom: 32px !important;
+}
+
 /* Header del título: simple, sin gradiente ni sombra.
    El JS detecta el elemento con bg computado oscuro y le pone esta clase
    para anular el azul-marino original. */
@@ -1674,8 +1679,15 @@ body.ms-page-encuesta tr.ms-encuesta-divider th {
     line-height: 0;
 }
 
-/* Botón de enviar: limpio, accent sólido (sin gradiente) */
+/* Botón de enviar: limpio, accent sólido (sin gradiente).
+   Nota: NO usamos box-shadow de ningún tipo (ni en focus) porque dispara
+   un scrollbar en el form y reflowa el layout — eso hacía que el botón
+   se moviera al hacerle hover. Usamos outline para el focus (no afecta
+   layout). También forzamos transform:none para matar cualquier
+   translateY heredado de .btn-primary del template original. */
 body.ms-page-encuesta .ms-encuesta-submit {
+    display: inline-block !important;
+    float: none !important;
     background: var(--ms-accent) !important;
     background-image: none !important;
     color: #fff !important;
@@ -1686,24 +1698,209 @@ body.ms-page-encuesta .ms-encuesta-submit {
     font-size: 14px !important;
     font-family: inherit !important;
     cursor: pointer;
-    transition: background-color .15s ease, transform .1s ease;
+    transition: background-color .15s ease !important;
     box-shadow: none !important;
     text-shadow: none !important;
+    transform: none !important;
     height: auto !important;
     width: auto !important;
     min-width: 140px;
     margin-top: 16px !important;
+    outline: none;
 }
 
 body.ms-page-encuesta .ms-encuesta-submit:hover {
     background: var(--ms-accent-hover) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 body.ms-page-encuesta .ms-encuesta-submit:active {
-    transform: translateY(1px);
+    background: var(--ms-accent-hover) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 body.ms-page-encuesta .ms-encuesta-submit:focus {
     outline: none;
-    box-shadow: 0 0 0 3px var(--ms-accent-soft) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Outline solo en navegación por teclado, no después de click con mouse */
+body.ms-page-encuesta .ms-encuesta-submit:focus-visible {
+    outline: 2px solid var(--ms-accent);
+    outline-offset: 2px;
+}
+
+/* ---------- Custom Select (encuesta) ----------
+   El <select> original queda hidden y conserva la lógica del form.
+   Esta UI es solo visual + sincroniza el value mediante eventos. */
+body.ms-page-encuesta .ms-select {
+    position: relative;
+    display: inline-block;
+    /* Ancho fijo: el trigger no cambia de tamaño según la opción seleccionada.
+       180px es suficiente para opciones tipo "Muy Bueno", "Sobresaliente". */
+    width: 180px;
+    max-width: 100%;
+    font-family: inherit;
+}
+
+body.ms-page-encuesta .ms-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--ms-card-bg) !important;
+    color: var(--ms-text) !important;
+    border: 1px solid var(--ms-border-strong);
+    border-radius: var(--ms-radius-sm);
+    box-shadow: var(--ms-shadow-sm);
+    font-family: var(--ms-font) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.ms-page-encuesta .ms-select-trigger:hover {
+    border-color: var(--ms-accent);
+}
+
+body.ms-page-encuesta .ms-select.is-open .ms-select-trigger,
+body.ms-page-encuesta .ms-select-trigger:focus-visible {
+    outline: none;
+    border-color: var(--ms-accent);
+    box-shadow: 0 0 0 3px var(--ms-accent-soft), var(--ms-shadow-sm);
+}
+
+body.ms-page-encuesta .ms-select-value {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+    /* Forzamos un look "normal" para evitar que estilos del site
+       (color accent, weight bold, tamaño aumentado) se filtren */
+    color: var(--ms-text) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    font-style: normal !important;
+    font-family: inherit !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+body.ms-page-encuesta .ms-select-value.is-placeholder {
+    color: var(--ms-text-muted) !important;
+    font-style: italic !important;
+}
+
+body.ms-page-encuesta .ms-select-chevron {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ms-text-muted);
+    transition: transform .2s ease, color .15s ease;
+    flex-shrink: 0;
+}
+
+body.ms-page-encuesta .ms-select.is-open .ms-select-chevron {
+    transform: rotate(180deg);
+    color: var(--ms-accent);
+}
+
+body.ms-page-encuesta .ms-select-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 100;
+    min-width: 100%;
+    width: max-content;
+    max-width: 320px;
+    background: var(--ms-card-bg);
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius-sm);
+    box-shadow: var(--ms-shadow-lg);
+    padding: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+    transform-origin: top left;
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+}
+
+body.ms-page-encuesta .ms-select.is-open .ms-select-panel {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+body.ms-page-encuesta .ms-select-option {
+    padding: 9px 12px;
+    border-radius: var(--ms-radius-sm);
+    font-size: 14px;
+    color: var(--ms-text);
+    cursor: pointer;
+    transition: background-color .12s ease, color .12s ease;
+    user-select: none;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+body.ms-page-encuesta .ms-select-option:hover {
+    background: var(--ms-accent-soft);
+    color: var(--ms-accent);
+}
+
+body.ms-page-encuesta .ms-select-option.is-selected {
+    background: var(--ms-accent-soft);
+    color: var(--ms-accent);
+    font-weight: 600;
+}
+
+body.ms-page-encuesta .ms-select-option.is-placeholder {
+    color: var(--ms-text-muted);
+    font-style: italic;
+}
+
+body.ms-page-encuesta .ms-select-option.is-disabled {
+    color: var(--ms-text-muted);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+body.ms-page-encuesta .ms-select-option.is-disabled:hover {
+    background: transparent;
+    color: var(--ms-text-muted);
+}
+
+/* Scrollbar fino dentro del panel */
+body.ms-page-encuesta .ms-select-panel::-webkit-scrollbar {
+    width: 6px;
+}
+body.ms-page-encuesta .ms-select-panel::-webkit-scrollbar-thumb {
+    background: var(--ms-border-strong);
+    border-radius: 3px;
+}
+
+/* Dark mode */
+html.ms-dark body.ms-page-encuesta .ms-select-trigger {
+    background: var(--ms-card-bg-elev);
+    border-color: var(--ms-border-strong);
+}
+
+html.ms-dark body.ms-page-encuesta .ms-select-panel {
+    background: var(--ms-card-bg-elev);
+    border-color: var(--ms-border-strong);
+}
+
+html.ms-dark body.ms-page-encuesta .ms-select.is-open .ms-select-trigger {
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18), var(--ms-shadow-sm);
 }

@@ -881,6 +881,105 @@
         }
     }
 
+    /**
+     * Reemplaza visualmente un <select> nativo por un dropdown custom, sin
+     * romper la lógica del form:
+     *   - El <select> original queda en el DOM (display: none) → sigue siendo
+     *     lo que serializa el form al hacer submit.
+     *   - Cuando el usuario elige una opción en la UI custom, seteamos
+     *     select.value y disparamos un event 'change' nativo bubbleante,
+     *     que jQuery 1.11 captura igual que un cambio real del usuario.
+     */
+    function enhanceSelect(select) {
+        if (select.dataset.msEnhanced) return;
+        select.dataset.msEnhanced = '1';
+
+        const wrapper = el('div', { className: 'ms-select' });
+        const trigger = el('button', {
+            className: 'ms-select-trigger',
+            attrs: { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' }
+        });
+        const valueLabel = el('span', { className: 'ms-select-value' });
+        const chevron = el('span', {
+            className: 'ms-select-chevron',
+            html: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+        });
+        trigger.appendChild(valueLabel);
+        trigger.appendChild(chevron);
+
+        const panel = el('div', { className: 'ms-select-panel', attrs: { role: 'listbox' } });
+
+        const optionEls = [];
+        [...select.options].forEach((opt, i) => {
+            const optionEl = el('div', {
+                className: 'ms-select-option',
+                attrs: { role: 'option', 'data-value': opt.value, 'data-index': String(i) },
+                text: opt.text || ''
+            });
+            if (opt.disabled) optionEl.classList.add('is-disabled');
+            if (!opt.value) optionEl.classList.add('is-placeholder');
+            optionEl.addEventListener('click', () => {
+                if (opt.disabled) return;
+                select.selectedIndex = i;
+                select.dispatchEvent(new Event('input', { bubbles: true }));
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                updateDisplay();
+                close();
+            });
+            panel.appendChild(optionEl);
+            optionEls.push(optionEl);
+        });
+
+        function updateDisplay() {
+            const sel = select.options[select.selectedIndex];
+            const isPlaceholder = !sel || !sel.value;
+            valueLabel.textContent = sel ? sel.text : '';
+            valueLabel.classList.toggle('is-placeholder', isPlaceholder);
+            optionEls.forEach((o, i) => {
+                o.classList.toggle('is-selected', i === select.selectedIndex && !isPlaceholder);
+            });
+        }
+
+        function open() {
+            wrapper.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+        function close() {
+            wrapper.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+        function toggle() {
+            wrapper.classList.contains('is-open') ? close() : open();
+        }
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggle();
+        });
+
+        // Outside click cierra el panel
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) close();
+        });
+
+        // Escape cierra el panel
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && wrapper.classList.contains('is-open')) close();
+        });
+
+        // Si algo externo cambia el select (raro, pero por las dudas), reflejarlo
+        select.addEventListener('change', updateDisplay);
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(panel);
+
+        // Insertar el wrapper inmediatamente después del select y ocultar el original
+        select.style.display = 'none';
+        select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+        updateDisplay();
+    }
+
     // Encuesta: marca la página y detecta el header oscuro para restilizarlo.
     function handleEncuesta() {
         document.body.classList.add('ms-page-encuesta');
@@ -930,6 +1029,10 @@
         root.querySelectorAll('select, input[type="text"], textarea').forEach(i => {
             i.classList.add('ms-encuesta-field');
         });
+
+        // Reemplazar selects nativos por dropdown custom (manteniendo el
+        // <select> oculto para el submit del form)
+        root.querySelectorAll('select.ms-encuesta-field').forEach(enhanceSelect);
 
         // Reemplazar las filas de guiones (separadores feos del template original)
         // por un divisor limpio. Las detectamos como rows cuyo texto es solo
