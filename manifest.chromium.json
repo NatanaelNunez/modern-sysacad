@@ -37,7 +37,7 @@
       "matches": [
         "https://sysacad.frt.utn.edu.ar/*",
         "https://servicios.fra.utn.edu.ar/*",
-        "https://sysacadweb.frgp.utn.edu.ar/*"
+        "https://sysacadweb.frgp.utn.edu.ar/*",
         "https://sysacadweb.frre.utn.edu.ar/*"
       ]
     }
