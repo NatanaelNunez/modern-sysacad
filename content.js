@@ -4,6 +4,7 @@ const isMenuAlumno = href.includes('menualumno.asp');
 const isErrorPage = document.querySelector('.textoError') !== null;
 const isRoot = path === '/' || path.endsWith('default.asp');
 const isLogin = href.includes('loginalumno.asp') || isRoot || (isMenuAlumno && isErrorPage);
+const isAspError = document.body.textContent.includes('Error de Microsoft VBScript') || document.body.textContent.includes('Microsoft VBScript runtime error');
 
 // Mapa inmutable de códigos regionales a nombres
 const regionalMap = Object.freeze({
@@ -106,6 +107,40 @@ if (isMenuAlumno && !isErrorPage) {
         <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700;">Error de inicio de sesión</h2>
         <p style="margin: 0 0 24px 0; color: var(--text-secondary); font-size: 16px; line-height: 1.5;">${errorText}</p>
         <a href="loginAlumno.asp" class="btn-modern btn-primary" style="display: inline-flex; width: 100%; justify-content: center; box-sizing: border-box;">Volver al Login</a>
+    `;
+
+    document.body.appendChild(errorCard);
+} else if (isAspError) {
+    document.body.innerHTML = '';
+    document.body.style.backgroundColor = 'var(--bg-primary, #f8fafc)';
+
+    const mid = window.location.search.match(/id=([^&]+)/);
+    const backLink = mid ? `menuAlumno.asp?id=${mid[1]}` : 'menuAlumno.asp';
+
+    const errorCard = document.createElement('div');
+    errorCard.style.position = 'fixed';
+    errorCard.style.top = '50%';
+    errorCard.style.left = '50%';
+    errorCard.style.transform = 'translate(-50%, -50%)';
+    errorCard.style.backgroundColor = 'var(--bg-secondary, #ffffff)';
+    errorCard.style.padding = '32px';
+    errorCard.style.borderRadius = '12px';
+    errorCard.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+    errorCard.style.textAlign = 'center';
+    errorCard.style.fontFamily = 'var(--font-family)';
+    errorCard.style.color = 'var(--text-primary)';
+    errorCard.style.maxWidth = '420px';
+    errorCard.style.width = '90%';
+
+    errorCard.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700;">Error del sistema</h2>
+        <p style="margin: 0 0 16px 0; color: var(--text-secondary, #475569); font-size: 15px; line-height: 1.5;">Ocurrió un error inesperado al intentar acceder a esta sección.</p>
+        <div style="background: #fef3c7; border-radius: 8px; padding: 14px 16px; margin: 0 0 24px 0; text-align: left; font-size: 13px; line-height: 1.5; color: #92400e;">
+            <strong style="display: block; margin-bottom: 4px;">Posibles causas:</strong>
+            Esta sección no está habilitada en tu sucursal. Esto puede deberse a que el módulo no fue implementado aún en tu facultad, o la URL no es accesible desde tu regional.
+        </div>
+        <a href="${backLink}" class="btn-modern btn-primary" style="display: inline-flex; width: 100%; justify-content: center; box-sizing: border-box;">Volver al Menú Principal</a>
     `;
 
     document.body.appendChild(errorCard);
@@ -459,6 +494,7 @@ if (window.location.href.toLowerCase().includes('certalreg.asp') || window.locat
     const links = document.querySelectorAll('a');
     links.forEach(link => {
         if (link.closest('#modern-sidebar') || link.closest('#hamburger-btn')) return;
+        if (link.id === 'cafecito-btn' || link.id === 'github-btn') return;
 
         const text = link.textContent.trim().toLowerCase();
         link.classList.add('btn-modern');
@@ -480,6 +516,7 @@ if (window.location.href.toLowerCase().includes('certalreg.asp') || window.locat
 const allLinks = document.querySelectorAll('a');
 allLinks.forEach(link => {
     if (link.closest('#modern-sidebar') || link.closest('#hamburger-btn')) return;
+    if (link.id === 'cafecito-btn' || link.id === 'github-btn') return;
 
     const text = link.textContent.trim().toLowerCase();
 
